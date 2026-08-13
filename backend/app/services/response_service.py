@@ -8,7 +8,7 @@ from app.repositories.response_repository import ResponseRepository
 from app.models.response import Response
 from app.models.answer import Answer
 from app.models.enums import FormStatus, QuestionType
-from app.schemas import ResponseSubmit, ResponseRead, AnswerRead
+from app.schemas import ResponseSubmit
 
 EMAIL_REGEX = re.compile(r"^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$")
 
@@ -56,18 +56,27 @@ class ResponseService:
         # Server-side Validation across all questions
         for q_id, q in questions_by_id.items():
             ans_payload = answers_by_q_id.get(q_id)
-            val_text = ans_payload.value_text.strip() if (ans_payload and ans_payload.value_text) else None
-            val_num = ans_payload.value_number if ans_payload else None
+            
+            raw_text = ans_payload.value_text if ans_payload else None
+            raw_num = ans_payload.value_number if ans_payload else None
             val_json = ans_payload.value_json if ans_payload else None
 
+            val_text = raw_text.strip() if (raw_text is not None and isinstance(raw_text, str) and raw_text.strip() != "") else None
+            val_num = raw_num if (raw_num is not None) else None
+
+            # Fallback numeric conversion from text if val_num is None
+            if val_num is None and val_text is not None:
+                try:
+                    val_num = float(val_text)
+                except (ValueError, TypeError):
+                    pass
+
+            # Fallback text conversion from number if val_text is None
+            if val_text is None and val_num is not None:
+                val_text = str(val_num)
+
             # 1. Required field check
-            is_empty = (
-                val_text is None or val_text == ""
-            ) and (
-                val_num is None
-            ) and (
-                val_json is None
-            )
+            is_empty = (val_text is None) and (val_num is None) and (val_json is None)
 
             if q.required and is_empty:
                 raise HTTPException(
@@ -87,15 +96,12 @@ class ResponseService:
                     )
 
             elif q.type == QuestionType.NUMBER:
-                if val_num is None and val_text is not None:
-                    try:
-                        val_num = float(val_text)
-                    except ValueError:
-                        raise HTTPException(
-                            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                            detail=f"Answer for '{q.question_text}' must be numeric."
-                        )
-                if val_num is not None and q.config:
+                if val_num is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                        detail=f"Answer for '{q.question_text}' must be numeric."
+                    )
+                if q.config:
                     min_val = q.config.get("min")
                     max_val = q.config.get("max")
                     if min_val is not None and val_num < min_val:
@@ -110,11 +116,6 @@ class ResponseService:
                         )
 
             elif q.type == QuestionType.RATING:
-                if val_num is None and val_text is not None:
-                    try:
-                        val_num = float(val_text)
-                    except ValueError:
-                        pass
                 if val_num is None:
                     raise HTTPException(
                         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,

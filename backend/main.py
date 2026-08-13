@@ -1,10 +1,10 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.db.base import Base
-from app.db.session import engine, get_db
+from app.db.session import engine
 from app.db.seed import seed_db
 from app.api.v1 import api_router
 
@@ -26,31 +26,26 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS Middleware setup
+# Parse origins safely
+origins = [str(o).strip().rstrip("/") for o in settings.BACKEND_CORS_ORIGINS]
+is_wildcard = "*" in origins or len(origins) == 0
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"] if is_wildcard else origins,
+    allow_credentials=not is_wildcard,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include API v1 router
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
-@app.get(f"{settings.API_V1_STR}/health", tags=["Health"])
-def health_check(db: Session = Depends(get_db)):
-    """
-    Health check endpoint verifying backend and database connectivity.
-    """
-    return {
-        "status": "healthy",
-        "service": settings.PROJECT_NAME,
-        "database": "connected"
-    }
+@app.get("/")
+def root():
+    return {"message": f"Welcome to {settings.PROJECT_NAME}", "docs": "/docs"}
 
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+@app.get(f"{settings.API_V1_STR}/health")
+def health_check():
+    return {"status": "healthy"}

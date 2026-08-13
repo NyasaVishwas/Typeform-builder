@@ -137,16 +137,26 @@ export const FormRunner: React.FC<FormRunnerProps> = ({ form }) => {
 
     const completionTimeSeconds = Math.max(1, Math.round((Date.now() - startTimeRef.current) / 1000));
 
-    const formattedAnswers = Object.entries(answersMap).map(([qId, val]) => {
-      const q = questions.find((item) => item.id === qId);
-      const isNum = q?.type === QuestionType.NUMBER || q?.type === QuestionType.RATING;
+    const formattedAnswers = Object.entries(answersMap)
+      .map(([qId, val]) => {
+        const q = questions.find((item) => item.id === qId);
+        const isNum = q?.type === QuestionType.NUMBER || q?.type === QuestionType.RATING;
 
-      return {
-        question_id: qId,
-        value_text: isNum ? null : String(val),
-        value_number: isNum ? Number(val) : null,
-      };
-    });
+        const isBlank =
+          val === undefined ||
+          val === null ||
+          val === "" ||
+          (typeof val === "string" && val.trim() === "");
+
+        if (isBlank) return null;
+
+        return {
+          question_id: qId,
+          value_text: String(val),
+          value_number: isNum ? Number(val) : null,
+        };
+      })
+      .filter(Boolean);
 
     try {
       await submitResponse(form.slug, {
