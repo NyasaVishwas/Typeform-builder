@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
@@ -5,10 +6,24 @@ from app.core.config import settings
 from app.db.base import Base
 from app.db.session import engine, get_db
 from app.db.seed import seed_db
+from app.api.v1 import api_router
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    FastAPI lifespan context manager handling startup DB creation and seeding.
+    """
+    Base.metadata.create_all(bind=engine)
+    with Session(engine) as session:
+        seed_db(session)
+    yield
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    openapi_url=f"{settings.API_V1_STR}/openapi.json"
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    lifespan=lifespan
 )
 
 # CORS Middleware setup
@@ -20,16 +35,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
-@app.on_event("startup")
-def on_startup():
-    """
-    On backend startup, create all DB tables if they don't exist
-    and run idempotent database seeder.
-    """
-    Base.metadata.create_all(bind=engine)
-    with Session(engine) as session:
-        seed_db(session)
+# Include API v1 router
+app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
 @app.get(f"{settings.API_V1_STR}/health", tags=["Health"])
