@@ -2,12 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { ResponseData } from "@/types";
 import { getForm, getFormStatistics, getFormResponses } from "@/lib/api";
 import { useToast } from "@/context/ToastContext";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
+import { FormNavHeader } from "@/components/layout/FormNavHeader";
 import { SummaryTab } from "@/features/results/SummaryTab";
 import { ResponsesTab } from "@/features/results/ResponsesTab";
 
@@ -68,51 +66,29 @@ export default function FormResultsPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-50">
-      {/* Top Header */}
-      <header className="bg-white border-b border-slate-200/80 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Link
-              href="/dashboard"
-              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors shrink-0"
-              title="Back to Dashboard"
-            >
-              <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </Link>
+      <FormNavHeader form={form} />
 
-            <div className="flex flex-col">
-              <div className="flex items-center gap-2.5">
-                <h1 className="text-xl font-bold tracking-tight text-slate-900">{form.title}</h1>
-                <Badge status={form.status} />
-              </div>
-              <p className="text-xs text-slate-500 mt-0.5">Results & Analytics Overview</p>
-            </div>
+      {/* Results Header Metrics Row */}
+      <div className="bg-white border-b border-slate-200/80 px-6 py-4">
+        <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-bold tracking-tight text-slate-900">Results & Analytics</h2>
+            <p className="text-xs text-slate-500 mt-0.5">Overview of respondent statistics and individual submissions.</p>
           </div>
 
-          {/* Metrics summary + Action button */}
-          <div className="flex items-center gap-4 self-start sm:self-center">
-            <div className="flex items-center gap-4 px-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs">
-              <div className="flex flex-col">
-                <span className="text-slate-400 font-medium text-[10px] uppercase">Responses</span>
-                <span className="font-bold text-slate-900 text-sm font-mono">{totalResponses}</span>
-              </div>
-              <div className="h-6 w-px bg-slate-200" />
-              <div className="flex flex-col">
-                <span className="text-slate-400 font-medium text-[10px] uppercase">Avg Time</span>
-                <span className="font-bold text-slate-900 text-sm font-mono">{formattedAvgTime}</span>
-              </div>
+          <div className="flex items-center gap-4 px-4 py-2 bg-slate-50 border border-slate-200/80 rounded-xl text-xs">
+            <div className="flex flex-col">
+              <span className="text-slate-400 font-medium text-[10px] uppercase">Total Responses</span>
+              <span className="font-bold text-slate-900 text-sm font-mono">{totalResponses}</span>
             </div>
-
-            <Link href={`/forms/${form.id}/edit`}>
-              <Button variant="outline" size="sm">
-                Edit in Builder
-              </Button>
-            </Link>
+            <div className="h-6 w-px bg-slate-200" />
+            <div className="flex flex-col">
+              <span className="text-slate-400 font-medium text-[10px] uppercase">Avg Completion Time</span>
+              <span className="font-bold text-slate-900 text-sm font-mono">{formattedAvgTime}</span>
+            </div>
           </div>
         </div>
-      </header>
+      </div>
 
       {/* Main Area */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-6 py-8">
