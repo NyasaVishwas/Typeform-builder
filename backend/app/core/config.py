@@ -9,19 +9,14 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DATABASE_URL: str = "sqlite:///./typeform_builder.db"
     
-    # CORS Origins - supports list, JSON string, or comma-separated string
-    BACKEND_CORS_ORIGINS: Union[List[str], str] = [
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3001"
-    ]
+    # Allow all origins by default in production/cloud setups for seamless Vercel integration
+    BACKEND_CORS_ORIGINS: Union[List[str], str] = ["*"]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
     @classmethod
     def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
         if isinstance(v, str):
-            if not v.strip():
+            if not v.strip() or v == "*":
                 return ["*"]
             if v.startswith("[") and v.endswith("]"):
                 try:
@@ -30,7 +25,7 @@ class Settings(BaseSettings):
                     pass
             return [item.strip() for item in v.split(",") if item.strip()]
         elif isinstance(v, list):
-            return v
+            return v if v else ["*"]
         return ["*"]
 
     model_config = SettingsConfigDict(
