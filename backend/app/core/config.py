@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     API_V1_STR: str = "/api/v1"
     DATABASE_URL: str = "sqlite:///./typeform_builder.db"
     
-    # Allow all origins by default in production/cloud setups for seamless Vercel integration
+    # Default to wildcard "*" so Vercel frontend can query backend seamlessly
     BACKEND_CORS_ORIGINS: Union[List[str], str] = ["*"]
 
     @field_validator("BACKEND_CORS_ORIGINS", mode="before")
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
                     pass
             return [item.strip() for item in v.split(",") if item.strip()]
         elif isinstance(v, list):
-            return v if v else ["*"]
+            return v
         return ["*"]
 
     model_config = SettingsConfigDict(
